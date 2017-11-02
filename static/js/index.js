@@ -587,64 +587,59 @@ function getHistory(){
 //前後端通訊   
 function LassDecode(data, cb){
 	var res = data.feeds;
-	var id = data.source;
-	switch(id) {
-		case "last-all-airbox by IIS-NRL":
-			id = 0;
-			break;
-		case "last-all-maps by IIS-NRL":
-			id = 1;
-			break;
-		case "last-all-lass by IIS-NRL":
-			id = 2;
-			break;
-		case "last-all-lass4u by IIS-NRL":
-			id = 3;
-			break;
-		case "last-all-indie by IIS-NRL":
-			id = 4;
-			break;
-		case "last-all-probecube by IIS-NRL":
-			id = 5;
-			break;
+	var src2id = {
+		"last-all-airbox by IIS-NRL": 0,
+		"last-all-maps by IIS-NRL": 1,
+		"last-all-lass by IIS-NRL": 2,
+		"last-all-lass4u by IIS-NRL": 3,
+		"last-all-indie by IIS-NRL": 4,
+		"last-all-probecube by IIS-NRL": 5,
 	}
+	var id = src2id[data.source];
 
 	console.log('[LassDecode]', id, res);
-
-	LassData[id] = res;
-	SkioState[id] = true;
-	cb(id,LassData[id]);
+	if(typeof id != 'undefined') {
+		LassData[id] = res;
+		SkioState[id] = true;
+		cb(id,LassData[id]);
+	}
 }
 
 var wsUri = MyWS+"/socket";
-var ws = new WebSocket(wsUri); 
-ws.onopen = function(evt) { 
-    console.log("ws open");
-    //ws.send("5,open");
-}; 
-ws.onclose = function(evt) { 
-    console.log("ws close"); 
-}; 
-ws.onmessage = function(evt) { 
-//    console.log(evt.data);
-    switch(evt.data[0]){
-        case "0":
-            HLGet = true;
-            getHistory();
-            console.log(evt.data);
-        break;
-        case "5":
-            console.log(evt.data);
-        break;
-    }
-    LassDecode(JSON.parse(evt.data), function(id,a){
-        console.log(id);
-        upLaPop(id,a);
-    });
-}; 
-ws.onerror = function(evt) { 
-    console.log("error:", evt);
-};
+var ws = null;
+function wsconnect() {
+	ws = new WebSocket(wsUri);
+	ws.onopen = function(evt) {
+		console.log("ws open");
+		//ws.send("5,open");
+	}; 
+	ws.onclose = function(evt) {
+		console.log("ws close");
+		var t = setTimeout(wsconnect, 1000)
+	};
+	ws.onmessage = function(evt) {
+		//console.log(evt.data);
+		switch(evt.data[0]){
+		case "0":
+			HLGet = true;
+			getHistory();
+			console.log(evt.data);
+			break;
+		case "5":
+			console.log(evt.data);
+			break;
+		}
+		LassDecode(JSON.parse(evt.data), function(id,a){
+			console.log(id);
+			upLaPop(id,a);
+		});
+	}; 
+	ws.onerror = function(evt) {
+		console.log("error:", evt);
+	};
+}
+wsconnect()
+
 //接收LASS歷史資料
 /*socket.on('get_HL', function(data) {
     HLGet = true;
