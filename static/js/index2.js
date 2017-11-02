@@ -3,11 +3,10 @@
 'Imagery © <a href="http://mapbox.com">Mapbox</a>';
 
 const MbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png32?access_token=pk.eyJ1IjoidTk5MjMwMDEiLCJhIjoiY2o3YWdqeGZoMGZhZDJxbzFtZ2wxMWswZiJ9.rieTxvxJSPfaerXHPjMIiA';
-/*
-const MyDNS = "https://192.168.50.19:3001";
-const MyWS = "wss://192.168.50.19:3001";*/
-const MyDNS = "https://u9923001.myddns.me";
-const MyWS = "wss://u9923001.myddns.me";
+const MyDNS = "http://" + window.location.host;
+const MyWS = "ws://" + window.location.host;
+//const MyDNS = "https://u9923001.myddns.me";
+//const MyWS = "wss://u9923001.myddns.me";
 //建立感測點Marker
 var SenIcon = function(icon, color){
     return {icon: icon,

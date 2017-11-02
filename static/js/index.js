@@ -3,11 +3,10 @@
 'Imagery © <a href="http://mapbox.com">Mapbox</a>';
 
 const MbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png32?access_token=pk.eyJ1IjoidTk5MjMwMDEiLCJhIjoiY2o3YWdqeGZoMGZhZDJxbzFtZ2wxMWswZiJ9.rieTxvxJSPfaerXHPjMIiA';
-/*
-const MyDNS = "https://192.168.50.19:3001";
-const MyWS = "wss://192.168.50.19:3001";*/
-const MyDNS = "https://u9923001.myddns.me";
-const MyWS = "wss://u9923001.myddns.me";
+const MyDNS = "http://" + window.location.host;
+const MyWS = "ws://" + window.location.host;
+//const MyDNS = "https://u9923001.myddns.me";
+//const MyWS = "wss://u9923001.myddns.me";
 //建立感測點Marker
 var SenIcon = function(icon, color){
     return {icon: icon,
@@ -539,72 +538,6 @@ Map_L.on('popupopen', function(e) {
     };
 });
 
-
-function getLassDecode(id,cb){
-    //HTTPS
-    //$.getJSON('https://u9923001.myddns.me/sensor/'+id, function(data) {
-    //HTTP-1
-    $.getJSON(MyDNS+'/sensor/'+id, function(data) {
-    console.log(data[0].Series);
-    //HTTP-2
-    //$.getJSON('http://192.168.50.19:3001/sensor/'+id, function(data) {
-        if(data[0].Series != null){
-            console.log("GET LASS");
-            var res=[];
-            var d = data[0].Series[0].values;
-            /*
-            0:"time",
-            1:"App",
-            2:"Barometer",
-            3:"Device",
-            4:"Device_id",
-            5:"Humidity",
-            6:"Id",
-            7:"Latitude",
-            8:"Longitude",
-            9:"Pm1",
-            10:"Pm10",
-            11:"Pm25",
-            12:"Satellites",
-            13:"SiteName",
-            14:"Speed_kmph",
-            15:"Temperature",
-            16:"Timestamp",
-            17:"Voltage"
-            */
-            for (var i = 0, len = d.length; i < len; i++) {
-                var v ={
-                    SiteName: d[i][13],
-                    App: d[i][1],
-                    Device: d[i][3],
-                    Device_id: d[i][4],
-                    Latitude: d[i][7],
-                    Longitude: d[i][8],
-                    Timestamp: d[i][16],
-                    //Speed_kmph: "無",
-                    Temperature: d[i][15],
-                    Barometer:  d[i][2],
-                    Pm1: d[i][9],
-                    Pm25: d[i][11],
-                    Pm10: d[i][10],
-                    Humidity: d[i][5],
-                    Satellites: d[i][12],
-                    Voltage: d[i][17]
-                }
-                if(v.Latitude == null || v.Longitude== null){
-                
-                }else{
-                    res.push(v);   
-                }
-            }
-            LassData[id] = res;
-            cb(id,LassData[id]);
-        }else{
-            cb(6,"");
-        }
-    });
-}
-
 function getHistory(){
     $.getJSON(MyDNS+'/sensor/history/'+PtDevID, function(data) {
     //$.getJSON('https://u9923001.myddns.me/sensor/history/'+PtDevID, function(data) {
@@ -652,42 +585,48 @@ function getHistory(){
     HSortFin = true;
 }
 //前後端通訊   
-//var socket = io();
-for(var i=0;i<6;i++){    
-    getLassDecode(i,function(id,a){
-        console.log(id);
-        SkioState[id] = true;
-        //第一次資料接收執行
-        if(_cb1st[id+1]){
-            _cb1st[id+1] = false;
-        }
-        if(id != 6){
-            upLaPop(id,a);
-        }
-    }); 
-}
-window.getLassProg = setInterval(function(){
-    for(var i=0;i<6;i++){    
-        getLassDecode(i,function(id,a){
-            if(id != 6){
-                upLaPop(id,a);
-            }
-        });
-    }
-},120*1000)    
+function LassDecode(data, cb){
+	var res = data.feeds;
+	var id = data.source;
+	switch(id) {
+		case "last-all-airbox by IIS-NRL":
+			id = 0;
+			break;
+		case "last-all-maps by IIS-NRL":
+			id = 1;
+			break;
+		case "last-all-lass by IIS-NRL":
+			id = 2;
+			break;
+		case "last-all-lass4u by IIS-NRL":
+			id = 3;
+			break;
+		case "last-all-indie by IIS-NRL":
+			id = 4;
+			break;
+		case "last-all-probecube by IIS-NRL":
+			id = 5;
+			break;
+	}
 
-//var wsUri = "ws://192.168.50.19:3001/socket";
+	console.log('[LassDecode]', id, res);
+
+	LassData[id] = res;
+	SkioState[id] = true;
+	cb(id,LassData[id]);
+}
+
 var wsUri = MyWS+"/socket";
 var ws = new WebSocket(wsUri); 
 ws.onopen = function(evt) { 
     console.log("ws open");
-    ws.send("5,open");
+    //ws.send("5,open");
 }; 
 ws.onclose = function(evt) { 
     console.log("ws close"); 
 }; 
 ws.onmessage = function(evt) { 
-    console.log(evt.data);
+//    console.log(evt.data);
     switch(evt.data[0]){
         case "0":
             HLGet = true;
@@ -698,9 +637,13 @@ ws.onmessage = function(evt) {
             console.log(evt.data);
         break;
     }
+    LassDecode(JSON.parse(evt.data), function(id,a){
+        console.log(id);
+        upLaPop(id,a);
+    });
 }; 
 ws.onerror = function(evt) { 
-    console.log("error: "+evt.data);
+    console.log("error:", evt);
 };
 //接收LASS歷史資料
 /*socket.on('get_HL', function(data) {
@@ -1003,14 +946,14 @@ function setCheckBox(){
     function ckEvent(ck,cb,id){
         ck.checkbox({
             onChecked: function() {
-                if(_cb1st[id] || (!SkioState[id-1])){
+                /*if(_cb1st[id] || (!SkioState[id-1])){
                     ck.checkbox('uncheck');
                     alert("Lass data not yet");
-                }else{
+                }else{*/
                     CbState[id] = true;
                     changCheckBox(cb,true);
                     creatMkLyr(id-1,LassData[id-1]);
-                }
+                //}
             },
             onUnchecked: function() {
                 if(_cb1st[id]){
