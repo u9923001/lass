@@ -163,9 +163,9 @@ func (lc *LassCache) GetAll() [][]byte {
 	defer lc.lock.RUnlock()
 
 	size := len(lc.JsonData)
-	list := make([][]byte, size, size)
-	for idx, buf := range lc.JsonData {
-		list[idx] = buf
+	list := make([][]byte, 0, size)
+	for _, buf := range lc.JsonData {
+		list = append(list, buf)
 	}
 	return list
 }
